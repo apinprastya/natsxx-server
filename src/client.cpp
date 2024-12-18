@@ -122,22 +122,30 @@ void Client::processSubscribe (const std::vector<std::string_view>& args) {
 
 void Client::processPublish (const PublishArg& publishArg,
 const std::span<const char>& data) {
-    spdlog::debug ("publish subject: {}; data: {}", publishArg.subject,
-    std::string (data.begin (), data.end ()));
+    spdlog::debug ("publish subject: {}; reply: {}; data: {}", publishArg.subject,
+    publishArg.reply, std::string (data.begin (), data.end ()));
     auto subscribers =
     mServer->getSubscriberManager ()->getSubscriber (publishArg.subject);
+    spdlog::debug ("subscriber length: {}", subscribers.size ());
     for (const auto& subcriber : subscribers) {
         CharBuffer buffer;
         buffer.write ("MSG ");
-        buffer.write (subcriber->getSubject ());
+        buffer.write (publishArg.subject);
         buffer.write (" ");
         buffer.write (subcriber->getId ());
+        if (!publishArg.reply.empty ()) {
+            buffer.write (" ");
+            buffer.write (publishArg.reply);
+        }
         buffer.write (" ");
         buffer.write (std::to_string (data.size ()));
         buffer.write ("\r\n");
         buffer.write (data.data (), data.size ());
         buffer.write ("\r\n");
 
+        auto bufferStr = buffer.getBuffer ();
+        spdlog::debug (
+        "buffer value: {}", std::string{ bufferStr.begin (), bufferStr.end () });
         subcriber->getClient ()->sendMessage (buffer.getBuffer ());
     }
 }

@@ -98,10 +98,10 @@ template <typename T> class SubscriberNode {
 class Subscriber {
     public:
     Subscriber (const std::string& subject, const std::string& subId, Client* client);
-    inline std::string getSubject () const {
+    inline const std::string& getSubject () const {
         return mSubject;
     }
-    inline std::string getId () const {
+    inline const std::string& getId () const {
         return mId;
     }
     inline Client* getClient () {

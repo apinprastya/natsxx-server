@@ -125,6 +125,7 @@ void MessageParser::reset () {
     if (mBuff)
         mBuff.value ().clear ();
     mBuff = std::nullopt;
+    mPublishArg.reset ();
 }
 
 std::optional<ParserError> MessageParser::parseMessage (const std::span<const char>& data) {
@@ -413,8 +414,7 @@ std::optional<ParserError> MessageParser::parseMessage (const std::span<const ch
             if (mBuff) {
                 mBuff.value ().push_back (b);
             } else {
-                auto length  = i - mStart + 1;
-                auto subSpan = data.subspan (mStart, length);
+                auto subSpan = data.subspan (mStart, mPublishArg.length);
                 mBuff = std::vector<char> (subSpan.begin (), subSpan.end ());
                 spdlog::debug (
                 "real data: {}", std::string (mBuff->begin (), mBuff->end ()));
@@ -482,15 +482,26 @@ void MessageParser::parsePublishArg (const std::span<const char>& data) {
     if (start >= 0) {
         splits.push_back (std::string_view (data.data () + start, data.size () - start));
     }
+    int value;
     if (splits.size () == 2) {
         mPublishArg.subject = std::string (splits[0]);
-        int value;
-        auto [ptr, ec] = std::from_chars (
+        auto [ptr, ec]      = std::from_chars (
         splits[1].data (), splits[1].data () + splits[1].size (), value);
         if (ec == std::errc ()) {
             mPublishArg.length = value;
         } else {
-            spdlog::error ("unable to parse subscibe {}",
+            spdlog::error ("parsePublishArg with length 2: got error {}",
+            std::string (data.begin (), data.end ()));
+        }
+    } else if (splits.size () == 3) {
+        mPublishArg.subject = std::string (splits[0]);
+        mPublishArg.reply   = std::string (splits[1]);
+        auto [ptr, ec]      = std::from_chars (
+        splits[2].data (), splits[2].data () + splits[2].size (), value);
+        if (ec == std::errc ()) {
+            mPublishArg.length = value;
+        } else {
+            spdlog::error ("parsePublishArg with length 3: got error {}",
             std::string (data.begin (), data.end ()));
         }
     }

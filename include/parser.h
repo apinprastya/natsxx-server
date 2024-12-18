@@ -129,7 +129,14 @@ struct ParserState {
 
 struct PublishArg {
     std::string subject;
+    std::string reply;
     int length;
+
+    inline void reset () {
+        subject = {};
+        reply   = {};
+        length  = {};
+    }
 };
 
 class MessageParser {
